@@ -22,42 +22,31 @@ import io.flutter.view.TextureRegistry;
 
 
 public class MainActivity extends FlutterActivity {
+    class MyFlutterJNI extends FlutterJNI {
+        @Override
+        public void onSurfaceCreated(@NonNull Surface surface) {
+            super.onSurfaceCreated(surface);
+            if (createCalledCount > 1) {
+                try {
+                    triggerCrash();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     static int createCalledCount = 0;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         if (createCalledCount == 0) {
-            FlutterInjector injector = createCustomFlutterInjector();
-            FlutterInjector.setInstance(injector);
-            FlutterEngine flutterEngine = new FlutterEngine(this);
+            FlutterEngine flutterEngine = new FlutterEngine(this,null,new MyFlutterJNI(),null,true);
             flutterEngine.getDartExecutor().executeDartEntrypoint(DartExecutor.DartEntrypoint.createDefault());
             FlutterEngineCache.getInstance().put("cached_engine_identifier", flutterEngine);
         }
         createCalledCount++;
         super.onCreate(savedInstanceState);
-    }
-
-    @NonNull
-    private FlutterInjector createCustomFlutterInjector() {
-        FlutterInjector injector = new FlutterInjector.Builder().setFlutterJNIFactory(new FlutterJNI.Factory() {
-            public FlutterJNI provideFlutterJNI() {
-                return new FlutterJNI() {
-
-                    @Override
-                    public void onSurfaceCreated(@NonNull Surface surface) {
-                        super.onSurfaceCreated(surface);
-                        if (createCalledCount > 1) {
-                            try {
-                                triggerCrash();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                };
-            }
-        }).build();
-        return injector;
     }
 
     private void triggerCrash() throws NoSuchFieldException, IllegalAccessException {
